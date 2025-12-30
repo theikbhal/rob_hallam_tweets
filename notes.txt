@@ -1,0 +1,28 @@
+
+https://chatgpt.com/c/6953585b-00c8-8324-ab67-bd7170e171a7
+
+chrome developer console, twitter profile https://x.com/robj3d3 i want to capture tweets, in json ,format later to convert to pdf or website static or dyanamic start good start fast, small win , incremental win
+
+---
+
+(() => {
+  const tweets = [];
+
+  document.querySelectorAll('article').forEach((tweet) => {
+    const textEl = tweet.querySelector('[data-testid="tweetText"]');
+    const timeEl = tweet.querySelector('time');
+    const linkEl = tweet.querySelector('a[href*="/status/"]');
+
+    if (!textEl || !timeEl || !linkEl) return;
+
+    tweets.push({
+      username: location.pathname.replace("/", ""),
+      text: textEl.innerText,
+      timestamp: timeEl.getAttribute("datetime"),
+      tweet_url: "https://x.com" + linkEl.getAttribute("href")
+    });
+  });
+
+  console.log(JSON.stringify(tweets, null, 2));
+  return tweets;
+})();

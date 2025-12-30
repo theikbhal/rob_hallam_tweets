@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Rob Wallam Tweets – Aug 13</title>
+    <style>
+        body {
+            font-family: system-ui, Arial, sans-serif;
+            margin: 20px;
+            background: #fafafa;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            margin-bottom: 15px;
+        }
+
+        .tweet {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+        }
+
+        .meta {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .pagination {
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 6px 10px;
+            margin-right: 6px;
+            cursor: pointer;
+        }
+
+        select {
+            padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Rob Wallam Tweets</h1>
+
+    <div class="controls">
+        Page size:
+        <select id="pageSizeSelect">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+        </select>
+    </div>
+
+    <div id="tweets"></div>
+
+    <div class="pagination">
+        <button id="prevBtn">◀ Prev</button>
+        <span id="pageInfo"></span>
+        <button id="nextBtn">Next ▶</button>
+    </div>
+
+    <script>
+        let tweets = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        fetch("./tweets_aug13.json")
+            .then(res => res.json())
+            .then(data => {
+                tweets = data.sort(
+                    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                );
+                render();
+            });
+
+        function render() {
+            const container = document.getElementById("tweets");
+            container.innerHTML = "";
+
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageTweets = tweets.slice(start, end);
+
+            pageTweets.forEach(t => {
+                const div = document.createElement("div");
+                div.className = "tweet";
+                div.innerHTML = `
+      <div class="meta">
+        ${new Date(t.created_at).toLocaleString()} —
+        <a href="${t.url}" target="_blank">View on X</a>
+      </div>
+      <div>${t.text.replace(/\n/g, "<br>")}</div>
+    `;
+                container.appendChild(div);
+            });
+
+            const totalPages = Math.ceil(tweets.length / pageSize);
+            document.getElementById("pageInfo").innerText =
+                `Page ${currentPage} of ${totalPages} (${tweets.length} tweets)`;
+
+            document.getElementById("prevBtn").disabled = currentPage === 1;
+            document.getElementById("nextBtn").disabled = currentPage === totalPages;
+        }
+
+        document.getElementById("prevBtn").onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                render();
+            }
+        };
+
+        document.getElementById("nextBtn").onclick = () => {
+            const totalPages = Math.ceil(tweets.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                render();
+            }
+        };
+
+        document.getElementById("pageSizeSelect").onchange = (e) => {
+            pageSize = parseInt(e.target.value, 10);
+            currentPage = 1;
+            render();
+        };
+    </script>
+
+</body>
+
+</html>
