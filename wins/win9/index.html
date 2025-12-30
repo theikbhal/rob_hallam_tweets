@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Rob Hallam Tweets – Aug 13</title>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6f7f9;
+            margin: 20px;
+        }
+
+        .top-bar {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            padding: 10px 14px;
+            background: #fff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .top-bar span {
+            font-weight: 600;
+        }
+
+        .top-bar a {
+            text-decoration: none;
+            color: #0070f3;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        input,
+        select,
+        button {
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .tweet {
+            background: #fff;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+
+        .tweet a {
+            text-decoration: none;
+            color: #0070f3;
+            font-size: 13px;
+        }
+
+        .pagination {
+            margin-top: 15px;
+        }
+
+        label {
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 🔝 TOP BAR -->
+    <div class="top-bar">
+        <span>Hi, Ikbhal Basha Shaik</span>
+        <a href="https://buymeacoffee.com/theikbhal" target="_blank">☕ Buy me a coffee</a>
+        <a href="https://wa.me/919901014560" target="_blank">📱 WhatsApp</a>
+        <a href="mailto:theikbhal@gmail.com">✉️ Email</a>
+    </div>
+
+    <h2>Rob Hallam Tweets – Archive</h2>
+
+    <!-- 🎛 CONTROLS -->
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Search tweets..." />
+
+        <select id="pageSizeSelect">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+        </select>
+
+        <label>
+            <input type="checkbox" id="oldestFirstCheckbox" />
+            Show oldest first
+        </label>
+
+        <button onclick="exportPDF()">📄 Export PDF</button>
+    </div>
+
+    <!-- 📄 TWEETS -->
+    <div id="tweetsContainer"></div>
+
+    <!-- 🔢 PAGINATION -->
+    <div class="pagination">
+        <button onclick="prevPage()">⬅ Prev</button>
+        <span id="pageInfo"></span>
+        <button onclick="nextPage()">Next ➡</button>
+    </div>
+
+    <script>
+        let tweets = [];
+        let filteredTweets = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        const tweetsContainer = document.getElementById("tweetsContainer");
+        const searchInput = document.getElementById("searchInput");
+        const pageSizeSelect = document.getElementById("pageSizeSelect");
+        const pageInfo = document.getElementById("pageInfo");
+        const oldestFirstCheckbox = document.getElementById("oldestFirstCheckbox");
+
+        // 🔍 URL query (?q=mrr)
+        function getQueryParam(name) {
+            return new URLSearchParams(window.location.search).get(name) || "";
+        }
+
+        // 📥 LOAD JSON
+        fetch("tweets_aug13.json")
+            .then(res => res.json())
+            .then(data => {
+                tweets = data;
+                const q = getQueryParam("q");
+                if (q) searchInput.value = q;
+                applyFilters();
+            });
+
+        // 🔎 FILTER + SORT
+        function applyFilters() {
+            const q = searchInput.value.toLowerCase();
+            const oldestFirst = oldestFirstCheckbox.checked;
+
+            filteredTweets = tweets
+                .filter(t => t.text.toLowerCase().includes(q))
+                .sort((a, b) => {
+                    return oldestFirst
+                        ? new Date(a.created_at) - new Date(b.created_at)
+                        : new Date(b.created_at) - new Date(a.created_at);
+                });
+
+            currentPage = 1;
+            render();
+        }
+
+        // 🖨 RENDER
+        function render() {
+            tweetsContainer.innerHTML = "";
+
+            pageSize = parseInt(pageSizeSelect.value);
+            const start = (currentPage - 1) * pageSize;
+            const pageTweets = filteredTweets.slice(start, start + pageSize);
+
+            pageTweets.forEach(t => {
+                const div = document.createElement("div");
+                div.className = "tweet";
+                div.innerHTML = `
+      <div>${t.text.replace(/\n/g, "<br>")}</div>
+      <small>${new Date(t.created_at).toLocaleString()}</small><br>
+      <a href="${t.url}" target="_blank">View on X</a>
+    `;
+                tweetsContainer.appendChild(div);
+            });
+
+            pageInfo.textContent =
+                `Page ${currentPage} / ${Math.max(1, Math.ceil(filteredTweets.length / pageSize))}`;
+        }
+
+        // ⏮⏭ PAGINATION
+        function nextPage() {
+            if (currentPage * pageSize < filteredTweets.length) {
+                currentPage++;
+                render();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                render();
+            }
+        }
+
+        // 📄 EXPORT PDF (respects filters + order)
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 10;
+
+            filteredTweets.forEach((t, i) => {
+                const text = `${i + 1}. ${t.text}`;
+                const lines = doc.splitTextToSize(text, 180);
+                doc.text(lines, 10, y);
+                y += lines.length * 7 + 5;
+
+                if (y > 270) {
+                    doc.addPage();
+                    y = 10;
+                }
+            });
+
+            doc.save("rob_hallam_tweets.pdf");
+        }
+
+        // 🎯 EVENTS
+        searchInput.addEventListener("input", applyFilters);
+        pageSizeSelect.addEventListener("change", applyFilters);
+        oldestFirstCheckbox.addEventListener("change", applyFilters);
+    </script>
+
+</body>
+
+</html>
