@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rob Hallam Tweets – Filter & Export</title>
+
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 20px;
+      background: #fafafa;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    input, select, button {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .tweet {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+    }
+
+    .meta {
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    .pagination {
+      margin-top: 20px;
+    }
+
+    @media print {
+      .controls, .pagination {
+        display: none;
+      }
+      .tweet {
+        page-break-inside: avoid;
+        border: none;
+        border-bottom: 1px solid #ccc;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Rob Hallam Tweets</h1>
+
+<div class="controls">
+  <input id="searchInput" placeholder="Search tweets..." />
+
+  <select id="yearFilter">
+    <option value="">All Years</option>
+  </select>
+
+  <select id="monthFilter">
+    <option value="">All Months</option>
+  </select>
+
+  Page size:
+  <select id="pageSizeSelect">
+    <option value="5">5</option>
+    <option value="10" selected>10</option>
+    <option value="20">20</option>
+    <option value="50">50</option>
+  </select>
+
+  <button id="exportPdfBtn">📄 Export PDF</button>
+</div>
+
+<div id="tweets"></div>
+
+<div class="pagination">
+  <button id="prevBtn">◀ Prev</button>
+  <span id="pageInfo"></span>
+  <button id="nextBtn">Next ▶</button>
+</div>
+
+<script>
+let tweets = [];
+let filteredTweets = [];
+let currentPage = 1;
+let pageSize = 10;
+
+// Load tweets
+fetch("./tweets_aug13.json")
+  .then(res => res.json())
+  .then(data => {
+    tweets = data.sort((a, b) =>
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    populateFilters();
+    applyFilters();
+  });
+
+// Populate year/month filters
+function populateFilters() {
+  const years = new Set();
+  const months = new Set();
+
+  tweets.forEach(t => {
+    const d = new Date(t.created_at);
+    years.add(d.getFullYear());
+    months.add(d.getMonth() + 1);
+  });
+
+  [...years].sort((a,b)=>b-a).forEach(y => {
+    yearFilter.innerHTML += `<option value="${y}">${y}</option>`;
+  });
+
+  [...months].sort((a,b)=>a-b).forEach(m => {
+    monthFilter.innerHTML += `<option value="${m}">
+      ${new Date(0, m - 1).toLocaleString("default", { month: "long" })}
+    </option>`;
+  });
+}
+
+// Apply search + filters
+function applyFilters() {
+  const q = searchInput.value.toLowerCase();
+  const year = yearFilter.value;
+  const month = monthFilter.value;
+
+  filteredTweets = tweets.filter(t => {
+    const d = new Date(t.created_at);
+    return (
+      (!q || t.text.toLowerCase().includes(q)) &&
+      (!year || d.getFullYear() == year) &&
+      (!month || d.getMonth() + 1 == month)
+    );
+  });
+
+  currentPage = 1;
+  render();
+}
+
+// Render paginated tweets
+function render() {
+  tweetsDiv.innerHTML = "";
+
+  const start = (currentPage - 1) * pageSize;
+  const pageTweets = filteredTweets.slice(start, start + pageSize);
+
+  pageTweets.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "tweet";
+    div.innerHTML = `
+      <div class="meta">
+        ${new Date(t.created_at).toLocaleString()} —
+        <a href="${t.url}" target="_blank">View on X</a>
+      </div>
+      <div>${t.text.replace(/\n/g, "<br>")}</div>
+    `;
+    tweetsDiv.appendChild(div);
+  });
+
+  const totalPages = Math.ceil(filteredTweets.length / pageSize) || 1;
+  pageInfo.innerText =
+    `Page ${currentPage} of ${totalPages} (${filteredTweets.length} tweets)`;
+
+  prevBtn.disabled = currentPage === 1;
+  nextBtn.disabled = currentPage === totalPages;
+}
+
+// Events
+searchInput.oninput = applyFilters;
+yearFilter.onchange = applyFilters;
+monthFilter.onchange = applyFilters;
+
+pageSizeSelect.onchange = e => {
+  pageSize = +e.target.value;
+  currentPage = 1;
+  render();
+};
+
+prevBtn.onclick = () => {
+  if (currentPage > 1) {
+    currentPage--;
+    render();
+  }
+};
+
+nextBtn.onclick = () => {
+  const totalPages = Math.ceil(filteredTweets.length / pageSize);
+  if (currentPage < totalPages) {
+    currentPage++;
+    render();
+  }
+};
+
+// Export ALL filtered tweets to PDF
+exportPdfBtn.onclick = () => {
+  tweetsDiv.innerHTML = "";
+  filteredTweets.forEach(t => {
+    tweetsDiv.innerHTML += `
+      <div class="tweet">
+        <div class="meta">
+          ${new Date(t.created_at).toLocaleString()} — ${t.url}
+        </div>
+        <div>${t.text.replace(/\n/g, "<br>")}</div>
+      </div>`;
+  });
+  setTimeout(() => {
+    window.print();
+    render();
+  }, 300);
+};
+
+// Shortcuts
+const tweetsDiv = document.getElementById("tweets");
+const pageInfo = document.getElementById("pageInfo");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const searchInput = document.getElementById("searchInput");
+const yearFilter = document.getElementById("yearFilter");
+const monthFilter = document.getElementById("monthFilter");
+const pageSizeSelect = document.getElementById("pageSizeSelect");
+const exportPdfBtn = document.getElementById("exportPdfBtn");
+</script>
+
+</body>
+</html>
