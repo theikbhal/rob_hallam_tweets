@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>X → YouTube Upload Tracker (Rob Hallam)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <style>
+        body {
+            font-family: system-ui, Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 16px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        small {
+            color: #94a3b8;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .card {
+            background: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            background: #020617;
+            color: #e5e7eb;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            background: #334155;
+        }
+
+        button.danger {
+            background: #dc2626;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .row>div {
+            flex: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #1e293b;
+            padding: 6px;
+            vertical-align: top;
+        }
+
+        th {
+            text-align: left;
+            color: #94a3b8;
+        }
+
+        a {
+            color: #38bdf8;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .checkbox {
+            transform: scale(1.2);
+        }
+
+        .fast-list a {
+            display: block;
+            padding: 6px;
+            border-bottom: 1px dashed #1e293b;
+        }
+
+        .fast-list span {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .search {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>X → YouTube Upload Tracker</h1>
+        <small>Tracking Rob Hallam videos (X → YouTube)</small>
+
+        <!-- ADD FORM -->
+        <div class="card">
+            <h3>Add X Video</h3>
+
+            <input id="xLink" placeholder="X post link (required)" />
+            <input id="localLink" placeholder="Local video file link (optional)" />
+            <input id="ytTitle" placeholder="YouTube title (optional)" />
+            <textarea id="ytDesc" placeholder="YouTube description (optional)"></textarea>
+            <textarea id="ytNotes" placeholder="Notes (hashtags, schedule, ideas)"></textarea>
+
+            <button onclick="addItem()">Add</button>
+        </div>
+
+        <!-- SEARCH -->
+        <input class="search" id="search" placeholder="Search X link / title / notes" oninput="render()" />
+
+        <!-- FAST LIST -->
+        <div class="card">
+            <h3>⚡ Fast Track (Minimal)</h3>
+            <div class="fast-list" id="fastList"></div>
+        </div>
+
+        <!-- FULL TABLE -->
+        <div class="card">
+            <h3>📋 Full Tracker</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>X Link</th>
+                        <th>Downloaded</th>
+                        <th>Uploaded</th>
+                        <th>YouTube Title</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = "x_to_yt_tracker_v1";
+
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function addItem() {
+            const xLink = document.getElementById("xLink").value.trim();
+            if (!xLink) {
+                alert("X link required");
+                return;
+            }
+
+            data.unshift({
+                id: Date.now(),
+                xLink,
+                localLink: document.getElementById("localLink").value,
+                ytTitle: document.getElementById("ytTitle").value,
+                ytDesc: document.getElementById("ytDesc").value,
+                ytNotes: document.getElementById("ytNotes").value,
+                downloaded: false,
+                uploaded: false
+            });
+
+            document.querySelectorAll("input, textarea").forEach(e => e.value = "");
+            save();
+            render();
+        }
+
+        function toggle(id, field) {
+            const item = data.find(i => i.id === id);
+            item[field] = !item[field];
+            save();
+            render();
+        }
+
+        function removeItem(id) {
+            if (!confirm("Delete this entry?")) return;
+            data = data.filter(i => i.id !== id);
+            save();
+            render();
+        }
+
+        function render() {
+            const q = document.getElementById("search").value.toLowerCase();
+
+            const filtered = data.filter(i =>
+                i.xLink.toLowerCase().includes(q) ||
+                (i.ytTitle || "").toLowerCase().includes(q) ||
+                (i.ytNotes || "").toLowerCase().includes(q)
+            );
+
+            // Fast list
+            document.getElementById("fastList").innerHTML = filtered.map(i => `
+    <a href="${i.xLink}" target="_blank">
+      ${i.xLink}
+      <span>
+        ${i.downloaded ? "⬇️" : "⬜"} 
+        ${i.uploaded ? "📤" : "⬜"}
+      </span>
+    </a>
+  `).join("");
+
+            // Table
+            document.getElementById("table").innerHTML = filtered.map(i => `
+    <tr>
+      <td>
+        <a href="${i.xLink}" target="_blank">X Post</a><br>
+        ${i.localLink ? `<a href="${i.localLink}" target="_blank">Local File</a>` : ""}
+      </td>
+      <td><input class="checkbox" type="checkbox" ${i.downloaded ? "checked" : ""} onchange="toggle(${i.id}, 'downloaded')"></td>
+      <td><input class="checkbox" type="checkbox" ${i.uploaded ? "checked" : ""} onchange="toggle(${i.id}, 'uploaded')"></td>
+      <td>${i.ytTitle || ""}</td>
+      <td>${i.ytNotes || ""}</td>
+      <td>
+        <button class="danger" onclick="removeItem(${i.id})">Delete</button>
+      </td>
+    </tr>
+  `).join("");
+        }
+
+        render();
+    </script>
+
+</body>
+
+</html>
