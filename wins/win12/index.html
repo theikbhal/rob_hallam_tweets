@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Rob Hallam – YouTube Shorts Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        button {
+            padding: 6px 10px;
+            margin: 4px;
+            cursor: pointer;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .video-item {
+            border: 1px solid #334155;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        iframe {
+            width: 240px;
+            height: 430px;
+            border: none;
+        }
+
+        .meta {
+            flex: 1;
+        }
+
+        .meta textarea {
+            width: 100%;
+            min-height: 60px;
+            margin-top: 5px;
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .detail {
+            display: none;
+            border-top: 2px solid #475569;
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+
+        .badge {
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #334155;
+            margin-left: 5px;
+        }
+
+        a {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎬 Rob Hallam – Shorts Tracker</h1>
+
+        <button onclick="importLinks()">📥 Import links.txt (paste)</button>
+        <span class="badge">Saved in LocalStorage</span>
+
+        <div id="list"></div>
+
+        <div class="pagination">
+            <button onclick="prevPage()">⬅ Prev</button>
+            <span id="pageInfo"></span>
+            <button onclick="nextPage()">Next ➡</button>
+        </div>
+
+        <div id="detail" class="detail"></div>
+    </div>
+
+    <script>
+        const PAGE_SIZE = 5;
+        let page = 1;
+        let videos = JSON.parse(localStorage.getItem('videos') || '[]');
+
+        function save() {
+            localStorage.setItem('videos', JSON.stringify(videos));
+        }
+
+        function importLinks() {
+            const text = prompt("Paste contents of links.txt here:");
+            if (!text) return;
+
+            const links = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+            links.forEach(url => {
+                if (!videos.find(v => v.url === url)) {
+                    videos.push({
+                        url,
+                        notes: '',
+                        actionNotes: '',
+                        checked: false,
+                        watched: false
+                    });
+                }
+            });
+
+            save();
+            render();
+        }
+
+        function getId(url) {
+            return url.split('/shorts/')[1];
+        }
+
+        function render() {
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+
+            const start = (page - 1) * PAGE_SIZE;
+            const pageItems = videos.slice(start, start + PAGE_SIZE);
+
+            pageItems.forEach((v, i) => {
+                const idx = start + i;
+                list.innerHTML += `
+      <div class="video-item">
+        <iframe src="https://www.youtube.com/embed/${getId(v.url)}"></iframe>
+        <div class="meta">
+          <div>
+            <strong>Video ${idx + 1}</strong>
+            ${v.checked ? '<span class="badge">Checked</span>' : ''}
+            ${v.watched ? '<span class="badge">Watched</span>' : ''}
+          </div>
+          <div>
+            <label><input type="checkbox" ${v.checked ? 'checked' : ''} onchange="toggle(${idx},'checked')"> Checked</label>
+            <label><input type="checkbox" ${v.watched ? 'checked' : ''} onchange="toggle(${idx},'watched')"> Watched</label>
+          </div>
+          <div>
+            <a href="#" onclick="openDetail(${idx});return false;">Open Detail →</a>
+          </div>
+        </div>
+      </div>
+    `;
+            });
+
+            document.getElementById('pageInfo').textContent =
+                `Page ${page} / ${Math.ceil(videos.length / PAGE_SIZE) || 1}`;
+        }
+
+        function toggle(i, key) {
+            videos[i][key] = !videos[i][key];
+            save();
+            render();
+        }
+
+        function openDetail(i) {
+            const v = videos[i];
+            const d = document.getElementById('detail');
+            d.style.display = 'block';
+
+            d.innerHTML = `
+    <h2>📌 Video Detail</h2>
+    <p><a href="${v.url}" target="_blank">${v.url}</a></p>
+    <iframe src="https://www.youtube.com/embed/${getId(v.url)}"></iframe>
+
+    <h3>Notes</h3>
+    <textarea onchange="update(${i}, 'notes', this.value)">${v.notes}</textarea>
+
+    <h3>Action Notes</h3>
+    <textarea onchange="update(${i}, 'actionNotes', this.value)">${v.actionNotes}</textarea>
+
+    <p>
+      <label><input type="checkbox" ${v.checked ? 'checked' : ''} onchange="toggle(${i},'checked')"> Checked</label>
+      <label><input type="checkbox" ${v.watched ? 'checked' : ''} onchange="toggle(${i},'watched')"> Watched</label>
+    </p>
+  `;
+        }
+
+        function update(i, key, value) {
+            videos[i][key] = value;
+            save();
+        }
+
+        function prevPage() {
+            if (page > 1) page--;
+            render();
+        }
+
+        function nextPage() {
+            if (page * PAGE_SIZE < videos.length) page++;
+            render();
+        }
+
+        render();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>1% Daily Growth Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            padding: 20px;
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        input {
+            padding: 6px;
+            width: 120px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            border: 1px solid #334155;
+            padding: 8px;
+            text-align: right;
+        }
+
+        th {
+            background: #1e293b;
+        }
+
+        tr.highlight {
+            background: #1e40af;
+        }
+
+        .note {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #cbd5f5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>📈 1% Daily Growth (Max 1 Year)</h1>
+
+        <p>
+            Start Value:
+            <input type="number" id="startValue" value="100">
+            <button onclick="calculate()">Calculate</button>
+        </p>
+
+        <h2>Key Milestones</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:left">Days</th>
+                    <th>Multiplier</th>
+                    <th>Final Value</th>
+                    <th>% Growth</th>
+                </tr>
+            </thead>
+            <tbody id="summary"></tbody>
+        </table>
+
+        <h2>Daily Growth (1 → 365 days)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:left">Day</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody id="daily"></tbody>
+        </table>
+
+        <div class="note">
+            🔹 1% daily = consistency<br>
+            🔹 First 30–50 days feel slow<br>
+            🔹 100+ days = compounding zone<br>
+            🔹 365 days = exponential outcome
+        </div>
+    </div>
+
+    <script>
+        const milestones = [30, 40, 50, 100, 120, 365];
+
+        function calculate() {
+            const start = parseFloat(document.getElementById('startValue').value);
+            const summary = document.getElementById('summary');
+            const daily = document.getElementById('daily');
+
+            summary.innerHTML = '';
+            daily.innerHTML = '';
+
+            // Summary table
+            milestones.forEach(days => {
+                const multiplier = Math.pow(1.01, days);
+                const value = start * multiplier;
+                const growth = ((multiplier - 1) * 100).toFixed(2);
+
+                summary.innerHTML += `
+      <tr class="${days !== 365 ? 'highlight' : ''}">
+        <td style="text-align:left">${days} days</td>
+        <td>${multiplier.toFixed(4)}×</td>
+        <td>${value.toFixed(2)}</td>
+        <td>+${growth}%</td>
+      </tr>
+    `;
+            });
+
+            // Daily table
+            let current = start;
+            for (let day = 1; day <= 365; day++) {
+                current *= 1.01;
+                daily.innerHTML += `
+      <tr>
+        <td style="text-align:left">Day ${day}</td>
+        <td>${current.toFixed(2)}</td>
+      </tr>
+    `;
+            }
+        }
+
+        // initial load
+        calculate();
+    </script>
+
+</body>
+
+</html>
