@@ -1,0 +1,25 @@
+<script>
+    document.getElementById("exportPdfBtn").onclick = () => {
+        const container = document.getElementById("tweets");
+        container.innerHTML = "";
+
+        // Render ALL tweets (ignore pagination & search)
+        tweets.forEach(t => {
+            const div = document.createElement("div");
+            div.className = "tweet";
+            div.innerHTML = `
+      <div class="meta">
+        ${new Date(t.created_at).toLocaleString()} —
+        ${t.url}
+      </div>
+      <div>${t.text.replace(/\n/g, "<br>")}</div>
+    `;
+            container.appendChild(div);
+        });
+
+        setTimeout(() => {
+            window.print();
+            render(); // restore paginated view after print
+        }, 300);
+    };
+</script>
