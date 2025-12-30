@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Rob Hallam Tweets – Wins</title>
+    <style>
+        body {
+            font-family: system-ui, Arial, sans-serif;
+            background: #fafafa;
+            margin: 30px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .win {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+        }
+
+        .win a {
+            font-size: 18px;
+            font-weight: 600;
+            text-decoration: none;
+            color: #0070f3;
+        }
+
+        .desc {
+            color: #555;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📊 Rob Hallam Tweets – Progress Wins</h1>
+
+    <div id="wins"></div>
+
+    <script>
+        fetch("./wins.json")
+            .then(r => r.json())
+            .then(wins => {
+                const container = document.getElementById("wins");
+
+                wins.forEach(w => {
+                    const div = document.createElement("div");
+                    div.className = "win";
+                    div.innerHTML = `
+        <a href="wins/${w.id}/index.html">${w.title}</a>
+        <div class="desc">${w.desc}</div>
+      `;
+                    container.appendChild(div);
+                });
+            })
+            .catch(() => {
+                document.getElementById("wins").innerText =
+                    "⚠️ Run via local server or GitHub Pages to load wins.json";
+            });
+    </script>
+
+</body>
+
+</html>

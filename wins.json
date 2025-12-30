@@ -1,0 +1,27 @@
+[
+    {
+        "id": "win1",
+        "title": "Win 1 – Initial Capture",
+        "desc": "First raw tweet extraction"
+    },
+    {
+        "id": "win2",
+        "title": "Win 2 – Auto Scroll",
+        "desc": "Scroll automation & capture"
+    },
+    {
+        "id": "win3",
+        "title": "Win 3 – Pagination",
+        "desc": "Paginated tweet viewer"
+    },
+    {
+        "id": "win4",
+        "title": "Win 4 – Search",
+        "desc": "Search + pagination"
+    },
+    {
+        "id": "win5",
+        "title": "Win 5 – PDF Export",
+        "desc": "Export all tweets to PDF"
+    }
+]
